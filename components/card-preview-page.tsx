@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import { Download, Image as ImageIcon, Loader2 } from "lucide-react"
 import { formatDate } from "@/lib/date-utils"
-import html2canvas from "html2canvas"
 
 interface CardPreviewPageProps {
   initialMemberId?: string
@@ -42,22 +41,134 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
 
   const date = getDate()
 
+  const loadImageAsBase64 = (src: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = "anonymous"
+      img.onload = () => {
+        const canvas = document.createElement("canvas")
+        canvas.width = img.naturalWidth
+        canvas.height = img.naturalHeight
+        const ctx = canvas.getContext("2d")
+        if (!ctx) return reject("No canvas context")
+        ctx.drawImage(img, 0, 0)
+        resolve(canvas.toDataURL("image/png"))
+      }
+      img.onerror = () => reject(`Failed to load image: ${src}`)
+      img.src = src
+    })
+  }
+
   const downloadCard = async () => {
-    if (!cardRef.current || !selectedMember) return
+    if (!selectedMember) return
     setIsDownloading(true)
+
     try {
-      const canvas = await html2canvas(cardRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-      })
+      const cardWidth = 360
+      const cardHeight = 450
+
+      const canvas = document.createElement("canvas")
+      canvas.width = cardWidth * 2
+      canvas.height = cardHeight * 2
+      const ctx = canvas.getContext("2d")
+      if (!ctx) throw new Error("No canvas context")
+      ctx.scale(2, 2)
+
+      // Draw member photo behind template
+      if (selectedMember.photo) {
+        try {
+          const photoBase64 = await loadImageAsBase64(selectedMember.photo)
+          const photoImg = new Image()
+          await new Promise<void>((res) => {
+            photoImg.onload = () => res()
+            photoImg.src = photoBase64
+          })
+          const photoX = cardWidth * 0.22
+          const photoY = cardHeight * 0.28
+          const photoW = cardWidth * 0.48
+          const photoH = cardHeight * 0.58
+          ctx.drawImage(photoImg, photoX, photoY, photoW, photoH)
+        } catch {
+          // Photo failed to load — draw initials placeholder
+          const photoX = cardWidth * 0.22
+          const photoY = cardHeight * 0.28
+          const photoW = cardWidth * 0.48
+          const photoH = cardHeight * 0.58
+          ctx.fillStyle = "rgba(201,168,76,0.3)"
+          ctx.fillRect(photoX, photoY, photoW, photoH)
+          ctx.fillStyle = "#C9A84C"
+          ctx.font = "bold 48px serif"
+          ctx.textAlign = "center"
+          ctx.fillText(
+            selectedMember.name.charAt(0),
+            photoX + photoW / 2,
+            photoY + photoH / 2 + 16
+          )
+        }
+      } else {
+        // No photo — draw initials placeholder
+        const photoX = cardWidth * 0.22
+        const photoY = cardHeight * 0.28
+        const photoW = cardWidth * 0.48
+        const photoH = cardHeight * 0.58
+        ctx.fillStyle = "rgba(201,168,76,0.3)"
+        ctx.fillRect(photoX, photoY, photoW, photoH)
+        ctx.fillStyle = "#C9A84C"
+        ctx.font = "bold 48px serif"
+        ctx.textAlign = "center"
+        ctx.fillText(
+          selectedMember.name.charAt(0),
+          photoX + photoW / 2,
+          photoY + photoH / 2 + 16
+        )
+      }
+
+      // Draw template on top
+      try {
+        const templateBase64 = await loadImageAsBase64("/images/twn-birthday-template.png")
+        const templateImg = new Image()
+        await new Promise<void>((res) => {
+          templateImg.onload = () => res()
+          templateImg.src = templateBase64
+        })
+        ctx.drawImage(templateImg, 0, 0, cardWidth, cardHeight)
+      } catch {
+        // Template failed — draw a simple background
+        ctx.fillStyle = "#CC0000"
+        ctx.fillRect(0, 0, cardWidth, cardHeight)
+      }
+
+      // Draw date badge
+      if (date) {
+        const dateText = formatDate(date)
+        ctx.fillStyle = "white"
+        ctx.beginPath()
+        ctx.roundRect(cardWidth - 90, cardHeight * 0.05, 80, 28, 5)
+        ctx.fill()
+        ctx.fillStyle = "#1A2E1A"
+        ctx.font = "bold 11px Arial"
+        ctx.textAlign = "center"
+        ctx.fillText(dateText, cardWidth - 50, cardHeight * 0.05 + 18)
+      }
+
+      // Draw member name
+      ctx.fillStyle = "white"
+      ctx.font = "bold 18px Arial"
+      ctx.textAlign = "center"
+      ctx.shadowColor = "rgba(0,0,0,0.8)"
+      ctx.shadowBlur = 8
+      ctx.fillText(selectedMember.name, cardWidth / 2, cardHeight * 0.92)
+      ctx.shadowBlur = 0
+
+      // Download
       const link = document.createElement("a")
       link.download = `${selectedMember.name}-${celebrationType}-card.png`
       link.href = canvas.toDataURL("image/png")
       link.click()
+
     } catch (error) {
       console.error("Error downloading card:", error)
+      alert("Could not download card. Please try again.")
     } finally {
       setIsDownloading(false)
     }
