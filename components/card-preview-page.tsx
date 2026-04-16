@@ -64,17 +64,23 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
     setIsDownloading(true)
 
     try {
-      const cardWidth = 360
-      const cardHeight = 450
+      // Output at full template resolution 1080x1350
+      const cardWidth = 1080
+      const cardHeight = 1350
 
       const canvas = document.createElement("canvas")
-      canvas.width = cardWidth * 2
-      canvas.height = cardHeight * 2
+      canvas.width = cardWidth
+      canvas.height = cardHeight
       const ctx = canvas.getContext("2d")
       if (!ctx) throw new Error("No canvas context")
-      ctx.scale(2, 2)
 
-      // Draw member photo behind template
+      // Frame opening coordinates tuned to template
+      const frameX = cardWidth * 0.28
+      const frameY = cardHeight * 0.18
+      const frameW = cardWidth * 0.44
+      const frameH = cardHeight * 0.52
+
+      // Draw member photo inside frame with cover-fit
       if (selectedMember.photo) {
         try {
           const photoBase64 = await loadImageAsBase64(selectedMember.photo)
@@ -83,44 +89,32 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
             photoImg.onload = () => res()
             photoImg.src = photoBase64
           })
-          const photoX = cardWidth * 0.22
-          const photoY = cardHeight * 0.28
-          const photoW = cardWidth * 0.48
-          const photoH = cardHeight * 0.58
-          ctx.drawImage(photoImg, photoX, photoY, photoW, photoH)
+          const imgAspect = photoImg.naturalWidth / photoImg.naturalHeight
+          const frameAspect = frameW / frameH
+          let sx = 0, sy = 0, sw = photoImg.naturalWidth, sh = photoImg.naturalHeight
+          if (imgAspect > frameAspect) {
+            sw = photoImg.naturalHeight * frameAspect
+            sx = (photoImg.naturalWidth - sw) / 2
+          } else {
+            sh = photoImg.naturalWidth / frameAspect
+            sy = (photoImg.naturalHeight - sh) / 2
+          }
+          ctx.drawImage(photoImg, sx, sy, sw, sh, frameX, frameY, frameW, frameH)
         } catch {
-          // Photo failed to load — draw initials placeholder
-          const photoX = cardWidth * 0.22
-          const photoY = cardHeight * 0.28
-          const photoW = cardWidth * 0.48
-          const photoH = cardHeight * 0.58
           ctx.fillStyle = "rgba(201,168,76,0.3)"
-          ctx.fillRect(photoX, photoY, photoW, photoH)
+          ctx.fillRect(frameX, frameY, frameW, frameH)
           ctx.fillStyle = "#C9A84C"
-          ctx.font = "bold 48px serif"
+          ctx.font = `bold ${frameW * 0.4}px serif`
           ctx.textAlign = "center"
-          ctx.fillText(
-            selectedMember.name.charAt(0),
-            photoX + photoW / 2,
-            photoY + photoH / 2 + 16
-          )
+          ctx.fillText(selectedMember.name.charAt(0), frameX + frameW / 2, frameY + frameH / 2 + frameW * 0.15)
         }
       } else {
-        // No photo — draw initials placeholder
-        const photoX = cardWidth * 0.22
-        const photoY = cardHeight * 0.28
-        const photoW = cardWidth * 0.48
-        const photoH = cardHeight * 0.58
         ctx.fillStyle = "rgba(201,168,76,0.3)"
-        ctx.fillRect(photoX, photoY, photoW, photoH)
+        ctx.fillRect(frameX, frameY, frameW, frameH)
         ctx.fillStyle = "#C9A84C"
-        ctx.font = "bold 48px serif"
+        ctx.font = `bold ${frameW * 0.4}px serif`
         ctx.textAlign = "center"
-        ctx.fillText(
-          selectedMember.name.charAt(0),
-          photoX + photoW / 2,
-          photoY + photoH / 2 + 16
-        )
+        ctx.fillText(selectedMember.name.charAt(0), frameX + frameW / 2, frameY + frameH / 2 + frameW * 0.15)
       }
 
       // Draw template on top
@@ -133,31 +127,34 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         })
         ctx.drawImage(templateImg, 0, 0, cardWidth, cardHeight)
       } catch {
-        // Template failed — draw a simple background
-        ctx.fillStyle = "#CC0000"
+        ctx.fillStyle = "#1A2E1A"
         ctx.fillRect(0, 0, cardWidth, cardHeight)
       }
 
       // Draw date badge
       if (date) {
         const dateText = formatDate(date)
+        const badgeX = cardWidth * 0.62
+        const badgeY = cardHeight * 0.045
+        const badgeW = cardWidth * 0.25
+        const badgeH = cardHeight * 0.04
         ctx.fillStyle = "white"
         ctx.beginPath()
-        ctx.roundRect(cardWidth - 90, cardHeight * 0.05, 80, 28, 5)
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 8)
         ctx.fill()
         ctx.fillStyle = "#1A2E1A"
-        ctx.font = "bold 11px Arial"
+        ctx.font = `bold ${cardHeight * 0.022}px Arial`
         ctx.textAlign = "center"
-        ctx.fillText(dateText, cardWidth - 50, cardHeight * 0.05 + 18)
+        ctx.fillText(dateText, badgeX + badgeW / 2, badgeY + badgeH * 0.68)
       }
 
-      // Draw member name
+      // Draw member name at bottom
       ctx.fillStyle = "white"
-      ctx.font = "bold 18px Arial"
+      ctx.font = `bold ${cardHeight * 0.03}px Arial`
       ctx.textAlign = "center"
-      ctx.shadowColor = "rgba(0,0,0,0.8)"
-      ctx.shadowBlur = 8
-      ctx.fillText(selectedMember.name, cardWidth / 2, cardHeight * 0.92)
+      ctx.shadowColor = "rgba(0,0,0,0.9)"
+      ctx.shadowBlur = 12
+      ctx.fillText(selectedMember.name, cardWidth / 2, cardHeight * 0.9)
       ctx.shadowBlur = 0
 
       // Download
@@ -240,7 +237,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
           <div className="relative">
             <div className="absolute -inset-6 bg-[#1A2E1A]/40 rounded-3xl blur-2xl" />
 
-            {/* CARD */}
+            {/* CARD PREVIEW */}
             <div
               ref={cardRef}
               className="relative overflow-hidden rounded-2xl shadow-2xl"
@@ -253,10 +250,10 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                   alt={selectedMember.name}
                   style={{
                     position: "absolute",
-                    left: "22%",
-                    top: "28%",
-                    width: "48%",
-                    height: "58%",
+                    left: "28%",
+                    top: "18%",
+                    width: "44%",
+                    height: "52%",
                     objectFit: "cover",
                     zIndex: 1,
                   }}
@@ -264,10 +261,10 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
               ) : (
                 <div style={{
                   position: "absolute",
-                  left: "22%",
-                  top: "28%",
-                  width: "48%",
-                  height: "58%",
+                  left: "28%",
+                  top: "18%",
+                  width: "44%",
+                  height: "52%",
                   zIndex: 1,
                   background: "linear-gradient(135deg, rgba(201,168,76,0.3), rgba(26,46,26,0.5))",
                   display: "flex",
@@ -316,8 +313,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                     {formatDate(date)}
                   </div>
                 )}
-
-                {/* Member Name */}
                 <div style={{
                   position: "absolute",
                   bottom: "8%",
