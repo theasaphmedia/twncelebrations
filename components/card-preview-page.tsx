@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react"
 import { useMembers } from "@/contexts/members-context"
 import { Button } from "@/components/ui/button"
-import { motion } from "framer-motion"
+import { MemberModal } from "./member-modal"
+import { motion, AnimatePresence } from "framer-motion"
 import { Download, Image as ImageIcon, Loader2 } from "lucide-react"
 import { formatDate } from "@/lib/date-utils"
 
@@ -60,12 +61,16 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
   }
 
   const downloadCard = async () => {
-    if (!selectedMember) return
+    if (!cardRef.current || !selectedMember) return
     setIsDownloading(true)
 
     try {
-      const cardWidth = 1080
-      const cardHeight = 1350
+      // Match the preview card dimensions exactly (360x450) but at 3x resolution
+      const scale = 3
+      const previewW = 360
+      const previewH = 450
+      const cardWidth = previewW * scale
+      const cardHeight = previewH * scale
 
       const canvas = document.createElement("canvas")
       canvas.width = cardWidth
@@ -73,13 +78,9 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
       const ctx = canvas.getContext("2d")
       if (!ctx) throw new Error("No canvas context")
 
-      // Frame opening — centered horizontally, middle vertically
-      const frameX = cardWidth * 0.22
-      const frameY = cardHeight * 0.28
-      const frameW = cardWidth * 0.48
-      const frameH = cardHeight * 0.45
+      ctx.scale(scale, scale)
 
-      // Draw member photo inside frame with cover-fit
+      // LAYER 1 — member photo (same % as preview HTML)
       if (selectedMember.photo) {
         try {
           const photoBase64 = await loadImageAsBase64(selectedMember.photo)
@@ -88,8 +89,14 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
             photoImg.onload = () => res()
             photoImg.src = photoBase64
           })
+          const left = previewW * 0.22
+          const top = previewH * 0.28
+          const w = previewW * 0.48
+          const h = previewH * 0.58
+
+          // Cover-fit
           const imgAspect = photoImg.naturalWidth / photoImg.naturalHeight
-          const frameAspect = frameW / frameH
+          const frameAspect = w / h
           let sx = 0, sy = 0, sw = photoImg.naturalWidth, sh = photoImg.naturalHeight
           if (imgAspect > frameAspect) {
             sw = photoImg.naturalHeight * frameAspect
@@ -98,25 +105,34 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
             sh = photoImg.naturalWidth / frameAspect
             sy = (photoImg.naturalHeight - sh) / 2
           }
-          ctx.drawImage(photoImg, sx, sy, sw, sh, frameX, frameY, frameW, frameH)
+          ctx.drawImage(photoImg, sx, sy, sw, sh, left, top, w, h)
         } catch {
+          // Initials fallback
+          const left = previewW * 0.22
+          const top = previewH * 0.28
+          const w = previewW * 0.48
+          const h = previewH * 0.58
           ctx.fillStyle = "rgba(201,168,76,0.3)"
-          ctx.fillRect(frameX, frameY, frameW, frameH)
+          ctx.fillRect(left, top, w, h)
           ctx.fillStyle = "#C9A84C"
-          ctx.font = `bold ${frameW * 0.4}px serif`
+          ctx.font = "bold 60px serif"
           ctx.textAlign = "center"
-          ctx.fillText(selectedMember.name.charAt(0), frameX + frameW / 2, frameY + frameH / 2 + frameW * 0.15)
+          ctx.fillText(selectedMember.name.charAt(0), left + w / 2, top + h / 2 + 20)
         }
       } else {
+        const left = previewW * 0.22
+        const top = previewH * 0.28
+        const w = previewW * 0.48
+        const h = previewH * 0.58
         ctx.fillStyle = "rgba(201,168,76,0.3)"
-        ctx.fillRect(frameX, frameY, frameW, frameH)
+        ctx.fillRect(left, top, w, h)
         ctx.fillStyle = "#C9A84C"
-        ctx.font = `bold ${frameW * 0.4}px serif`
+        ctx.font = "bold 60px serif"
         ctx.textAlign = "center"
-        ctx.fillText(selectedMember.name.charAt(0), frameX + frameW / 2, frameY + frameH / 2 + frameW * 0.15)
+        ctx.fillText(selectedMember.name.charAt(0), left + w / 2, top + h / 2 + 20)
       }
 
-      // Draw template on top
+      // LAYER 2 — template on top
       try {
         const templateBase64 = await loadImageAsBase64("/images/twn-birthday-template.png")
         const templateImg = new Image()
@@ -124,36 +140,37 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
           templateImg.onload = () => res()
           templateImg.src = templateBase64
         })
-        ctx.drawImage(templateImg, 0, 0, cardWidth, cardHeight)
+        ctx.drawImage(templateImg, 0, 0, previewW, previewH)
       } catch {
         ctx.fillStyle = "#1A2E1A"
-        ctx.fillRect(0, 0, cardWidth, cardHeight)
+        ctx.fillRect(0, 0, previewW, previewH)
       }
 
-      // Date badge — top right, small and clean
+      // LAYER 3 — date badge (same position as preview: top 5%, right 3%)
       if (date) {
         const dateText = formatDate(date)
-        const badgeW = 180
-        const badgeH = 55
-        const badgeX = cardWidth - badgeW - 40
-        const badgeY = 40
+        const badgeH = 32
+        const badgeX = previewW * 0.97 - 70
+        const badgeY = previewH * 0.05
+        const badgeW = 70
+
         ctx.fillStyle = "white"
         ctx.beginPath()
-        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 8)
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6)
         ctx.fill()
         ctx.fillStyle = "#1A2E1A"
-        ctx.font = "bold 28px Arial"
+        ctx.font = "bold 11px Arial"
         ctx.textAlign = "center"
-        ctx.fillText(dateText, badgeX + badgeW / 2, badgeY + 36)
+        ctx.fillText(dateText, badgeX + badgeW / 2, badgeY + 21)
       }
 
-      // Member name — bottom center
+      // LAYER 3 — name (same position as preview: bottom 8%)
       ctx.fillStyle = "white"
-      ctx.font = "bold 52px Arial"
+      ctx.font = "bold 18px Arial"
       ctx.textAlign = "center"
       ctx.shadowColor = "rgba(0,0,0,0.8)"
-      ctx.shadowBlur = 16
-      ctx.fillText(selectedMember.name, cardWidth / 2, cardHeight - 120)
+      ctx.shadowBlur = 8
+      ctx.fillText(selectedMember.name, previewW / 2, previewH * 0.92)
       ctx.shadowBlur = 0
 
       const link = document.createElement("a")
@@ -235,7 +252,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
           <div className="relative">
             <div className="absolute -inset-6 bg-[#1A2E1A]/40 rounded-3xl blur-2xl" />
 
-            {/* CARD PREVIEW */}
+            {/* CARD — original preview HTML untouched */}
             <div
               ref={cardRef}
               className="relative overflow-hidden rounded-2xl shadow-2xl"
@@ -251,7 +268,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                     left: "22%",
                     top: "28%",
                     width: "48%",
-                    height: "45%",
+                    height: "58%",
                     objectFit: "cover",
                     zIndex: 1,
                   }}
@@ -262,7 +279,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                   left: "22%",
                   top: "28%",
                   width: "48%",
-                  height: "45%",
+                  height: "58%",
                   zIndex: 1,
                   background: "linear-gradient(135deg, rgba(201,168,76,0.3), rgba(26,46,26,0.5))",
                   display: "flex",
