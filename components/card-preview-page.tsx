@@ -64,7 +64,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
     setIsDownloading(true)
 
     try {
-      // Output at full template resolution 1080x1350
       const cardWidth = 1080
       const cardHeight = 1350
 
@@ -74,7 +73,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
       const ctx = canvas.getContext("2d")
       if (!ctx) throw new Error("No canvas context")
 
-      // Frame opening coordinates tuned to template
+      // Frame opening coordinates
       const frameX = cardWidth * 0.28
       const frameY = cardHeight * 0.18
       const frameW = cardWidth * 0.44
@@ -131,30 +130,30 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         ctx.fillRect(0, 0, cardWidth, cardHeight)
       }
 
-      // Draw date badge
+      // Date badge — restored original position (top right, small)
       if (date) {
         const dateText = formatDate(date)
-        const badgeX = cardWidth * 0.62
-        const badgeY = cardHeight * 0.045
-        const badgeW = cardWidth * 0.25
-        const badgeH = cardHeight * 0.04
+        const badgeW = 180
+        const badgeH = 55
+        const badgeX = cardWidth - badgeW - 40
+        const badgeY = 40
         ctx.fillStyle = "white"
         ctx.beginPath()
         ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 8)
         ctx.fill()
         ctx.fillStyle = "#1A2E1A"
-        ctx.font = `bold ${cardHeight * 0.022}px Arial`
+        ctx.font = "bold 28px Arial"
         ctx.textAlign = "center"
-        ctx.fillText(dateText, badgeX + badgeW / 2, badgeY + badgeH * 0.68)
+        ctx.fillText(dateText, badgeX + badgeW / 2, badgeY + 36)
       }
 
-      // Draw member name at bottom
+      // Member name — restored original position (bottom center)
       ctx.fillStyle = "white"
-      ctx.font = `bold ${cardHeight * 0.03}px Arial`
+      ctx.font = "bold 52px Arial"
       ctx.textAlign = "center"
-      ctx.shadowColor = "rgba(0,0,0,0.9)"
-      ctx.shadowBlur = 12
-      ctx.fillText(selectedMember.name, cardWidth / 2, cardHeight * 0.9)
+      ctx.shadowColor = "rgba(0,0,0,0.8)"
+      ctx.shadowBlur = 16
+      ctx.fillText(selectedMember.name, cardWidth / 2, cardHeight - 120)
       ctx.shadowBlur = 0
 
       // Download
