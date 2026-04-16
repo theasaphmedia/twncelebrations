@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { useMembers } from "@/contexts/members-context"
 import { Button } from "@/components/ui/button"
-import { MemberModal } from "./member-modal"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { Download, Image as ImageIcon, Loader2 } from "lucide-react"
 import { formatDate } from "@/lib/date-utils"
 
@@ -42,6 +41,14 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
 
   const date = getDate()
 
+  // Photo frame position — shared between preview and download
+  const FRAME = {
+    left: 0.22,
+    top: 0.20,
+    width: 0.48,
+    height: 0.58,
+  }
+
   const loadImageAsBase64 = (src: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image()
@@ -65,7 +72,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
     setIsDownloading(true)
 
     try {
-      // Match the preview card dimensions exactly (360x450) but at 3x resolution
       const scale = 3
       const previewW = 360
       const previewH = 450
@@ -80,7 +86,12 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
 
       ctx.scale(scale, scale)
 
-      // LAYER 1 — member photo (same % as preview HTML)
+      const left = previewW * FRAME.left
+      const top = previewH * FRAME.top
+      const w = previewW * FRAME.width
+      const h = previewH * FRAME.height
+
+      // LAYER 1 — member photo
       if (selectedMember.photo) {
         try {
           const photoBase64 = await loadImageAsBase64(selectedMember.photo)
@@ -89,12 +100,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
             photoImg.onload = () => res()
             photoImg.src = photoBase64
           })
-          const left = previewW * 0.22
-          const top = previewH * 0.28
-          const w = previewW * 0.48
-          const h = previewH * 0.58
-
-          // Cover-fit
           const imgAspect = photoImg.naturalWidth / photoImg.naturalHeight
           const frameAspect = w / h
           let sx = 0, sy = 0, sw = photoImg.naturalWidth, sh = photoImg.naturalHeight
@@ -107,11 +112,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
           }
           ctx.drawImage(photoImg, sx, sy, sw, sh, left, top, w, h)
         } catch {
-          // Initials fallback
-          const left = previewW * 0.22
-          const top = previewH * 0.28
-          const w = previewW * 0.48
-          const h = previewH * 0.58
           ctx.fillStyle = "rgba(201,168,76,0.3)"
           ctx.fillRect(left, top, w, h)
           ctx.fillStyle = "#C9A84C"
@@ -120,10 +120,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
           ctx.fillText(selectedMember.name.charAt(0), left + w / 2, top + h / 2 + 20)
         }
       } else {
-        const left = previewW * 0.22
-        const top = previewH * 0.28
-        const w = previewW * 0.48
-        const h = previewH * 0.58
         ctx.fillStyle = "rgba(201,168,76,0.3)"
         ctx.fillRect(left, top, w, h)
         ctx.fillStyle = "#C9A84C"
@@ -132,7 +128,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         ctx.fillText(selectedMember.name.charAt(0), left + w / 2, top + h / 2 + 20)
       }
 
-      // LAYER 2 — template on top
+      // LAYER 2 — template
       try {
         const templateBase64 = await loadImageAsBase64("/images/twn-birthday-template.png")
         const templateImg = new Image()
@@ -146,13 +142,13 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         ctx.fillRect(0, 0, previewW, previewH)
       }
 
-      // LAYER 3 — date badge (same position as preview: top 5%, right 3%)
+      // LAYER 3 — date badge
       if (date) {
         const dateText = formatDate(date)
-        const badgeH = 32
-        const badgeX = previewW * 0.97 - 70
-        const badgeY = previewH * 0.05
         const badgeW = 70
+        const badgeH = 32
+        const badgeX = previewW * 0.97 - badgeW
+        const badgeY = previewH * 0.05
 
         ctx.fillStyle = "white"
         ctx.beginPath()
@@ -164,7 +160,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         ctx.fillText(dateText, badgeX + badgeW / 2, badgeY + 21)
       }
 
-      // LAYER 3 — name (same position as preview: bottom 8%)
+      // LAYER 3 — member name
       ctx.fillStyle = "white"
       ctx.font = "bold 18px Arial"
       ctx.textAlign = "center"
@@ -252,7 +248,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
           <div className="relative">
             <div className="absolute -inset-6 bg-[#1A2E1A]/40 rounded-3xl blur-2xl" />
 
-            {/* CARD — original preview HTML untouched */}
             <div
               ref={cardRef}
               className="relative overflow-hidden rounded-2xl shadow-2xl"
@@ -265,10 +260,10 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                   alt={selectedMember.name}
                   style={{
                     position: "absolute",
-                    left: "22%",
-                    top: "28%",
-                    width: "48%",
-                    height: "58%",
+                    left: `${FRAME.left * 100}%`,
+                    top: `${FRAME.top * 100}%`,
+                    width: `${FRAME.width * 100}%`,
+                    height: `${FRAME.height * 100}%`,
                     objectFit: "cover",
                     zIndex: 1,
                   }}
@@ -276,10 +271,10 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
               ) : (
                 <div style={{
                   position: "absolute",
-                  left: "22%",
-                  top: "28%",
-                  width: "48%",
-                  height: "58%",
+                  left: `${FRAME.left * 100}%`,
+                  top: `${FRAME.top * 100}%`,
+                  width: `${FRAME.width * 100}%`,
+                  height: `${FRAME.height * 100}%`,
                   zIndex: 1,
                   background: "linear-gradient(135deg, rgba(201,168,76,0.3), rgba(26,46,26,0.5))",
                   display: "flex",
