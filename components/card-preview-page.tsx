@@ -142,12 +142,12 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         ctx.fillRect(0, 0, previewW, previewH)
       }
 
-      // LAYER 3 — date badge
+      // LAYER 3 — date badge (moved inward by 2 units)
       if (date) {
         const dateText = formatDate(date)
         const badgeW = 70
         const badgeH = 32
-        const badgeX = previewW * 0.97 - badgeW
+        const badgeX = previewW * 0.95 - badgeW
         const badgeY = previewH * 0.05
         ctx.fillStyle = "white"
         ctx.beginPath()
@@ -159,9 +159,9 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         ctx.fillText(dateText, badgeX + badgeW / 2, badgeY + 21)
       }
 
-      // LAYER 3 — member name
+      // LAYER 3 — member name (reduced by 4pt)
       ctx.fillStyle = "white"
-      ctx.font = "bold 18px Arial"
+      ctx.font = "bold 14px Arial"
       ctx.textAlign = "center"
       ctx.shadowColor = "rgba(0,0,0,0.8)"
       ctx.shadowBlur = 8
@@ -300,7 +300,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                   <div style={{
                     position: "absolute",
                     top: "5%",
-                    right: "3%",
+                    right: "5%",
                     background: "white",
                     color: "#1A2E1A",
                     padding: "6px 12px",
@@ -325,7 +325,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                 }}>
                   <p style={{
                     color: "white",
-                    fontSize: "18px",
+                    fontSize: "14px",
                     fontWeight: "bold",
                     textShadow: "0 2px 8px rgba(0,0,0,0.8)",
                     letterSpacing: "0.05em",
