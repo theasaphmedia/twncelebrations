@@ -73,11 +73,11 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
       const ctx = canvas.getContext("2d")
       if (!ctx) throw new Error("No canvas context")
 
-      // Frame opening coordinates
-      const frameX = cardWidth * 0.28
-      const frameY = cardHeight * 0.18
-      const frameW = cardWidth * 0.44
-      const frameH = cardHeight * 0.52
+      // Frame opening — centered horizontally, middle vertically
+      const frameX = cardWidth * 0.22
+      const frameY = cardHeight * 0.28
+      const frameW = cardWidth * 0.48
+      const frameH = cardHeight * 0.45
 
       // Draw member photo inside frame with cover-fit
       if (selectedMember.photo) {
@@ -130,7 +130,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         ctx.fillRect(0, 0, cardWidth, cardHeight)
       }
 
-      // Date badge — restored original position (top right, small)
+      // Date badge — top right, small and clean
       if (date) {
         const dateText = formatDate(date)
         const badgeW = 180
@@ -147,7 +147,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         ctx.fillText(dateText, badgeX + badgeW / 2, badgeY + 36)
       }
 
-      // Member name — restored original position (bottom center)
+      // Member name — bottom center
       ctx.fillStyle = "white"
       ctx.font = "bold 52px Arial"
       ctx.textAlign = "center"
@@ -156,7 +156,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
       ctx.fillText(selectedMember.name, cardWidth / 2, cardHeight - 120)
       ctx.shadowBlur = 0
 
-      // Download
       const link = document.createElement("a")
       link.download = `${selectedMember.name}-${celebrationType}-card.png`
       link.href = canvas.toDataURL("image/png")
@@ -249,10 +248,10 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                   alt={selectedMember.name}
                   style={{
                     position: "absolute",
-                    left: "28%",
-                    top: "18%",
-                    width: "44%",
-                    height: "52%",
+                    left: "22%",
+                    top: "28%",
+                    width: "48%",
+                    height: "45%",
                     objectFit: "cover",
                     zIndex: 1,
                   }}
@@ -260,10 +259,10 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
               ) : (
                 <div style={{
                   position: "absolute",
-                  left: "28%",
-                  top: "18%",
-                  width: "44%",
-                  height: "52%",
+                  left: "22%",
+                  top: "28%",
+                  width: "48%",
+                  height: "45%",
                   zIndex: 1,
                   background: "linear-gradient(135deg, rgba(201,168,76,0.3), rgba(26,46,26,0.5))",
                   display: "flex",
