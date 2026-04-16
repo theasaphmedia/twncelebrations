@@ -44,7 +44,7 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
   // Photo frame position — shared between preview and download
   const FRAME = {
     left: 0.22,
-    top: 0.20,
+    top: 0.15,
     width: 0.48,
     height: 0.58,
   }
@@ -149,7 +149,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         const badgeH = 32
         const badgeX = previewW * 0.97 - badgeW
         const badgeY = previewH * 0.05
-
         ctx.fillStyle = "white"
         ctx.beginPath()
         ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 6)
@@ -193,7 +192,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
 
       <div className="max-w-4xl mx-auto space-y-6 relative">
 
-        {/* Controls */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -238,7 +236,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
           </div>
         </motion.div>
 
-        {/* Card Preview */}
         <motion.div
           className="flex flex-col items-center gap-6"
           initial={{ opacity: 0, scale: 0.95 }}
@@ -247,13 +244,11 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
         >
           <div className="relative">
             <div className="absolute -inset-6 bg-[#1A2E1A]/40 rounded-3xl blur-2xl" />
-
             <div
               ref={cardRef}
               className="relative overflow-hidden rounded-2xl shadow-2xl"
               style={{ width: "360px", height: "450px" }}
             >
-              {/* LAYER 1 — Member photo behind template */}
               {selectedMember?.photo ? (
                 <img
                   src={selectedMember.photo}
@@ -287,7 +282,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                 </div>
               )}
 
-              {/* LAYER 2 — Template PNG on top */}
               <img
                 src="/images/twn-birthday-template.png"
                 alt="Card Template"
@@ -301,7 +295,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
                 }}
               />
 
-              {/* LAYER 3 — Date & Name */}
               <div style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none" }}>
                 {date && (
                   <div style={{
@@ -344,7 +337,6 @@ export function CardPreviewPage({ initialMemberId, initialType }: CardPreviewPag
             </div>
           </div>
 
-          {/* Download Button */}
           <Button
             onClick={downloadCard}
             disabled={!selectedMember || isDownloading}
